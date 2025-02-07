@@ -19,7 +19,7 @@ const UserSchema = new Schema({
   licence: String,
   fname: String,
   mobile: Number,
-  status: String
+  status: String,
 });
 
 const User = model("User", UserSchema);
