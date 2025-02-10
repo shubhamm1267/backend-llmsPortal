@@ -9,11 +9,14 @@ import cors from "cors";
 const app = express();
 app.use(cors());
 app.use(json());
+
 console.log(process.env.MONGODB_URI);
-connect(process.env.MONGODB_URI, {})
+connect(process.env.MONGODB_URI, {
+  useNewUrlParser:true
+})
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
-
+  let users = [];
 const UserSchema = new Schema({
   id: Number,
   licence: String,
@@ -43,6 +46,65 @@ app.put("/users/:id", async (req, res) => {
 app.delete("/users/:id", async (req, res) => {
   await User.findByIdAndDelete(req.params.id);
   res.json({ message: "User Deleted" });
+});
+
+
+app.post('/register', (req, res) => {
+  const { username, password, confirmpass, checkbox } = req.body;
+
+  if (!username || !password || !confirmpass) {
+    return res.status(400).json({ success: false, message: 'All fields are required.' });
+  }
+
+  if (checkbox !== true) {
+    return res.status(400).json({ success: false, message: 'You must accept the terms.' });
+  }
+
+  if (password !== confirmpass) {
+    return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+  }
+
+  const existingUser = users.find(user => user.username === username);
+  if (existingUser) {
+    return res.status(400).json({ success: false, message: 'Username already exists.' });
+  }
+
+  const newUser = { username, password };
+  users.push(newUser);
+
+  return res.status(201).json({
+    success: true,
+    message: 'Registration successful!',
+    user: { username: newUser.username }
+  });
+});
+
+
+app.post('/login', (req, res) => {
+  const { username, password, checkbox } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ success: false, message: 'Username and password are required.' });
+  }
+
+  if (checkbox !== true) {
+    return res.status(400).json({ success: false, message: 'Please accept the terms.' });
+  }
+
+  const user = users.find(user => user.username === username);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found.' });
+  }
+
+  if (user.password !== password) {
+    return res.status(400).json({ success: false, message: 'Incorrect password.' });
+  }
+
+  return res.json({
+    success: true,
+    message: 'Login successful!',
+    user: { username: user.username }
+  });
 });
 
 const PORT = process.env.PORT || 5000;
