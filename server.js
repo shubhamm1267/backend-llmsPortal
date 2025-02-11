@@ -23,6 +23,8 @@ const UserSchema = new Schema({
   fname: String,
   mobile: Number,
   status: String,
+  username:String,
+  role:String
 });
 
 const User = model("User", UserSchema);
@@ -48,11 +50,11 @@ app.delete("/users/:id", async (req, res) => {
   res.json({ message: "User Deleted" });
 });
 
-
 const AuthUserSchema = new Schema({
   username: { type: String, required: true, unique: true },
   password: { type: String, required: true }
-});
+}, { timestamps: true });
+
 const AuthUser = model("AuthUser", AuthUserSchema);
 
 app.post('/auth/register', async (req, res) => {
@@ -85,6 +87,26 @@ app.post('/auth/register', async (req, res) => {
   } catch (err) {
     console.log("Registration error:", err);
     return res.status(500).json({ success: false, message: 'Server error during registration.' });
+  }
+});
+
+app.get('/auth/userCounts', async (req, res) => {
+  try {
+    const totalUsers = await AuthUser.countDocuments();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const todayCount = await AuthUser.countDocuments({
+      createdAt: { $gte: today, $lt: tomorrow }
+    });
+
+    return res.json({ success: true, totalUsers, todayCount });
+  } catch (err) {
+    console.error("Error counting users:", err);
+    return res.status(500).json({ success: false, message: 'Server error while counting users.' });
   }
 });
 
